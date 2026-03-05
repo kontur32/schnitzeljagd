@@ -1,70 +1,53 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Карта свалок</title>
-    <script src="https://polyfill.io"></script>
-    <!-- Библиотека PapaParse для чтения CSV -->
+    <title>Карта свалок (Яндекс)</title>
+    <script src="https://api-maps.yandex.ru"></script>
     <script src="https://cdnjs.cloudflare.com"></script>
     <style>
         #map { height: 100vh; width: 100%; }
-        body { margin: 0; padding: 0; }
-        .info-img { width: 200px; border-radius: 8px; margin-top: 10px; }
+        body { margin: 0; }
     </style>
 </head>
 <body>
     <div id="map"></div>
 
     <script>
-        const CSV_URL = 'ВАША_ССЫЛКА_ИЗ_ПУНКТА_1';
-        const API_KEY = 'ВАШ_GOOGLE_MAPS_API_KEY';
-
-        // Загрузка Google Maps API
-        (g=>{var h,a,k,p="The Google Maps JavaScript API",c="google",l="importLibrary",q="__ib__",m=document,b=window;b=b[c]||(b[c]={});var d=b[l]||(b[l]=h=>async({key:e,v:f,...j})=>{h&&console.warn(p+" only loads once. Ignoring:",{key:e,v:f,...j});a=m.createElement("script");a.src=`https://maps.${c}://apis.com{e}&v=${f}&libraries=${(j.libraries||[]).join(",")}&callback=${q}`;a.async=!0;a.onerror=()=>h=n(Error(p+" could not load."));b[q]=()=>h(a);m.head.append(a);return k=new Promise((r,s)=>h=r)},d.v="weekly",d);})
-        ({key: API_KEY, v: "beta"});
+        const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSW0x6L1YWyrrq36g1NALCTw-n0TEOPiSye6zJaSDWKLNdVN8t4R_i3TyEs4rBVsz-cE8CNHLFHqjR5/pub?gid=1349514042&single=true&output=csv';
 
         async function initMap() {
-            const { Map } = await google.maps.importLibrary("maps");
-            const { AdvancedMarkerElement } = await google.maps.importLibrary("marker");
+            await ymaps3.ready;
+            const {YMap, YMapDefaultSchemeLayer, YMapDefaultFeaturesLayer, YMapMarker} = ymaps3;
 
-            const map = new Map(document.getElementById("map"), {
-                zoom: 12,
-                center: { lat: 56.95, lng: 41.05 }, // Центр (Иваново)
-                mapId: "DEMO_MAP_ID", // Для кастомных маркеров
+            const map = new YMap(document.getElementById('map'), {
+                location: { center: [41.05, 56.95], zoom: 12 } // Иваново [Lng, Lat]
             });
 
-            // Читаем CSV
+            map.addChild(new YMapDefaultSchemeLayer());
+            map.addChild(new YMapDefaultFeaturesLayer());
+
+            // Загружаем данные из таблицы
             Papa.parse(CSV_URL, {
-                download: true,
-                header: true,
+                download: true, header: true,
                 complete: function(results) {
                     results.data.forEach(row => {
                         if (row.Lat && row.Lng) {
-                            const marker = new AdvancedMarkerElement({
-                                map: map,
-                                position: { lat: parseFloat(row.Lat), lng: parseFloat(row.Lng) },
-                                title: "Свалка: " + row.Date
-                            });
+                            const markerElement = document.createElement('div');
+                            markerElement.innerHTML = '📍'; // Или иконка мусорки
+                            markerElement.style.cursor = 'pointer';
+                            markerElement.style.fontSize = '24px';
 
-                            // Окно с фото при клике
-                            const infoWindow = new google.maps.InfoWindow();
-                            marker.addListener("click", () => {
-                                const content = `
-                                    <div>
-                                        <strong>Дата:</strong> ${row.Date}<br>
-                                        <strong>Кто нашел:</strong> @${row.User}<br>
-                                        <img src="${row.PhotoUrl}" class="info-img" alt="Фото мусора">
-                                        <br><br>
-                                        <a href="https://www.google.com{row.Lat},${row.Lng}" target="_blank">🔎 Построить маршрут</a>
-                                    </div>`;
-                                infoWindow.setContent(content);
-                                infoWindow.open(map, marker);
-                            });
+                            const marker = new YMapMarker({
+                                coordinates: [parseFloat(row.Lng), parseFloat(row.Lat)],
+                                onClick: () => alert(`Свалка от ${row.Date}. Фото: ${row.PhotoUrl}`)
+                            }, markerElement);
+
+                            map.addChild(marker);
                         }
                     });
                 }
             });
         }
-
         initMap();
     </script>
 </body>

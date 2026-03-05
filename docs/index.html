@@ -1,54 +1,46 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Карта свалок (Яндекс)</title>
-    <script src="https://api-maps.yandex.ru"></script>
-    <script src="https://cdnjs.cloudflare.com"></script>
+    <title>Моя карта</title>
     <style>
-        #map { height: 100vh; width: 100%; }
-        body { margin: 0; }
+        /* Обязательно задаем высоту блока карты, иначе карта не отобразится */
+        #map {
+            width: 100%;
+            height: 400px;
+            padding: 0;
+            margin: 0;
+        }
     </style>
 </head>
 <body>
+    <h1>Как нас найти</h1>
+    <!-- Контейнер для карты -->
     <div id="map"></div>
 
+    <!-- Здесь будет код для подключения API -->
+    <script src="https://api-maps.yandex.ru/v3/?apikey=d6d96249-7681-4ece-affa-4017e126a5e7&lang=ru_RU"></script>
     <script>
-        const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSW0x6L1YWyrrq36g1NALCTw-n0TEOPiSye6zJaSDWKLNdVN8t4R_i3TyEs4rBVsz-cE8CNHLFHqjR5/pub?gid=1349514042&single=true&output=csv';
-
-        async function initMap() {
-            await ymaps3.ready;
-            const {YMap, YMapDefaultSchemeLayer, YMapDefaultFeaturesLayer, YMapMarker} = ymaps3;
-
-            const map = new YMap(document.getElementById('map'), {
-                location: { center: [41.05, 56.95], zoom: 12 } // Иваново [Lng, Lat]
-            });
-
-            map.addChild(new YMapDefaultSchemeLayer());
-            map.addChild(new YMapDefaultFeaturesLayer());
-
-            // Загружаем данные из таблицы
-            Papa.parse(CSV_URL, {
-                download: true, header: true,
-                complete: function(results) {
-                    results.data.forEach(row => {
-                        if (row.Lat && row.Lng) {
-                            const markerElement = document.createElement('div');
-                            markerElement.innerHTML = '📍'; // Или иконка мусорки
-                            markerElement.style.cursor = 'pointer';
-                            markerElement.style.fontSize = '24px';
-
-                            const marker = new YMapMarker({
-                                coordinates: [parseFloat(row.Lng), parseFloat(row.Lat)],
-                                onClick: () => alert(`Свалка от ${row.Date}. Фото: ${row.PhotoUrl}`)
-                            }, markerElement);
-
-                            map.addChild(marker);
-                        }
-                    });
+        // Ждем загрузки страницы и API
+        ymaps3.ready.then(() => {
+            // Создаем карту
+            const map = new ymaps3.YMap(
+                document.getElementById('map'), // Элемент, куда вставляем карту
+                {
+                    location: {
+                        // Координаты центра карты (например, центр Москвы)
+                        center: [37.588144, 55.733842],
+                        zoom: 10 // Уровень приближения
+                    }
                 }
-            });
-        }
-        initMap();
+            );
+
+            // Добавляем слой для отображения самой карты (плитки)
+            map.addChild(new ymaps3.YMapDefaultSchemeLayer());
+
+            // Добавляем управление (кнопки "+", "-", и т.д.)
+            map.addChild(new ymaps3.YMapDefaultFeaturesLayer());
+            map.addChild(new ymaps3.YMapControls({ position: 'right' })).addChild(new ymaps3.YMapZoomControl());
+        });
     </script>
 </body>
 </html>
